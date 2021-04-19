@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Functions 
+# Functions
 
 function f_fix_scale() {
 #global MIN_SCALE
@@ -78,12 +78,12 @@ echo "
 drop table ${t} ;
 
 \timing
-create table ${t} as 
+create table ${t} as
 	select mykey::bigint, (random()*1000000000)::bigint as scratch ,
-	repeat('X', 1024)::char(1024) filler from generate_series(1,$rows) 
+	repeat('X', 1024)::char(1024) filler from generate_series(1,$rows)
 	as mykey order by scratch;
 
-\d ${t} 
+\d ${t}
 "
 }
 
@@ -102,14 +102,14 @@ function f_get_base_table_facts() {
 local connect_string="$1"
 local out_string=""
 
-out_string=$( psql $connect_string -c "\d+ pgio_base" 2>&1 )
+out_string=$( psql "$connect_string" -c "\d+ pgio_base" 2>&1 )
 
 if ( echo $out_string | grep -i 'did not find' > /dev/null 2>&1 )
 then
-	echo 
+	echo
 	echo "FATAL : The pgio.conf->CREATE_BASE_TABLE parameter is not set to \"TRUE\" but no prior pgio_base table exists."
 	echo "FATAL : Please set pgio.conf->CREATE_BASE_TABLE to \"TRUE\" and execute $0 again."
-	echo 
+	echo
 	return 1
 fi
 
@@ -132,9 +132,9 @@ insert into ${table_seed_name}${target} select * from $source;
 
 function f_test_conn() {
 local ret=0
-local connect_string="$1"
+local connect_string=$1
 
-echo '\q' | psql $connect_string > /dev/null 2>&1
+echo '\q' | psql "$connect_string"
 ret=$?
 
 [[ "$ret" -ne 0 ]] && return 1
@@ -200,7 +200,7 @@ echo "Batching info: Loading $num_threads schemas per batch as per pgio.conf->NU
 
 if [ "$create_base_table" = "TRUE" ]
 then
-	f_create_base_table pgio_base $scale | psql $connect_string > pgio_base_table_load.out 2>&1
+	f_create_base_table pgio_base $scale | psql "$connect_string" > pgio_base_table_load.out 2>&1
 	echo "Base table loading time: $(( SECONDS - before )) seconds."
 else
 	echo "NOTICE: Skipping creation of base table as per pgio.conf->CREATE_BASE_TABLE. Loading will proceed from existing pgio_base table."
@@ -211,26 +211,26 @@ fi
 
 before=$SECONDS
 
-f_drop_tables $TABLE_SEED_NAME | psql --echo-all $connect_string  > pgio_setup_drop_tables.out 2>&1
+f_drop_tables $TABLE_SEED_NAME | psql --echo-all "$connect_string"  > pgio_setup_drop_tables.out 2>&1
 
 before_group_data_load=$SECONDS
 
 for (( i=1 , cnt=1 ; i <= $num_schemas ; i++ , cnt++ ))
 do
-	( f_create_table $i pgio_base $TABLE_SEED_NAME | psql $connect_string > pgio_setup_t${i}.out 2>&1 ) &
+	( f_create_table $i pgio_base $TABLE_SEED_NAME | psql "$connect_string" > pgio_setup_t${i}.out 2>&1 ) &
 
 	if [ $cnt = $num_threads ]
 	then
-		echo "Waiting for batch. Global schema count: ${i}. Elapsed: $(( SECONDS - before_group_data_load )) seconds." 
-		wait 
+		echo "Waiting for batch. Global schema count: ${i}. Elapsed: $(( SECONDS - before_group_data_load )) seconds."
+		wait
 		cnt=1
 	fi
 
 	if [ $i = $num_schemas ]
 	then
-		echo "Waiting for batch. Global schema count: ${i}. Elapsed: $(( SECONDS - before_group_data_load )) seconds." 
+		echo "Waiting for batch. Global schema count: ${i}. Elapsed: $(( SECONDS - before_group_data_load )) seconds."
 
-	fi	
+	fi
 
 done
 
@@ -241,7 +241,7 @@ wait
 echo -e "\nGroup data loading phase complete.         Elapsed: $load_time seconds."
 
 sleep 5
-psql $connect_string -f sql/pgio_table_sizes.sql > pgio_data_load_table_sizes.out
+psql "$connect_string" -f pgio_table_sizes.sql > pgio_data_load_table_sizes.out
 
 rm -f pgio_setup_*
 

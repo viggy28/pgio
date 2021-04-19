@@ -16,4 +16,3 @@
 drop table pgio_audit_table ;
 create table pgio_audit_table ( c1 numeric , c2 numeric,  c3  numeric  , c4 numeric, c5 numeric, c6 numeric, c7 numeric, c8 numeric, c9 numeric, c10 numeric );
 
-

@@ -72,18 +72,18 @@ function f_get_pg_stat_database_stats() {
 local columns="$1"
 local dbname="$2"
 local conn_string="$3"
-psql $conn_string  -t --quiet  -c "select $columns from pg_stat_database where datname = '$dbname'"
+psql "$conn_string"  -t --quiet  -c "select $columns from pg_stat_database where datname = '$dbname'"
 }
 
 function f_get_shared_buffers() {
 local dbname=$1
 local conn_string=$2
 
-psql $conn_string -c 'show shared_buffers'--quiet -t | sed -e '/^$/d' -e 's/ //g'
+psql "$conn_string" -c 'show shared_buffers'--quiet -t | sed -e '/^$/d' -e 's/ //g'
 }
 
 function f_format_output() {
-#args: $run_time $after_reads $before_reads $dbname $num_schemas $ num_threads $before_cache_hits $after_cache_hits 
+#args: $run_time $after_reads $before_reads $dbname $num_schemas $ num_threads $before_cache_hits $after_cache_hits
 
 awk '{ printf("DBNAME:  %s. %d schemas, %d threads(each). Run time: %d seconds. RIOPS >%ld< CACHE_HITS/s >%ld<\n\n", $4,$5,$6, $1 , ($2 - $3 ) / $1, ($8 - $7) / $1  ) }'
 }
@@ -95,7 +95,7 @@ local tmp=""
 
 for tmp in $( echo $required_functions )
 do
-	psql $conn_string -f $tmp
+	psql "$conn_string" -f $tmp
 done
 }
 
@@ -103,7 +103,7 @@ function f_print_results() {
 echo "
  mypid | loop_iterations | sql_selects | sql_updates | sql_select_max_tm | sql_update_max_tm | select_blk_touch_cnt | update_blk_touch_cnt
 -------+-----------------+-------------+-------------+-------------------+-------------------+----------------------+----------------------
-" 
+"
 
 cat .pgio_schema_[0-9]*.out | sed -e '/[a-z]/d' -e '/---/g' -e '/^$/d'
 }
@@ -114,8 +114,8 @@ rm -f pgio_*.out .pgio_*out
 
 function f_diskstats() {
 	{
-	cat /proc/diskstats 
-	echo 
+	cat /proc/diskstats
+	echo
 	} >> pgio_diskstats.out
 }
 
@@ -134,7 +134,7 @@ function f_test_conn() {
 local ret=0
 local connect_string="$1"
 
-echo '\q' | psql $connect_string > /dev/null 2>&1
+echo '\q' | psql "$connect_string" > /dev/null 2>&1
 ret=$?
 
 [[ "$ret" -ne 0 ]] && return 1
@@ -178,7 +178,7 @@ mypsql=""
 
 export MIN_SCALE=1024
 export TABLE_SEED_NAME="pgio"
-required_functions="sql/pgio_get_rand.sql sql/pgio_audit_table.sql sql/pgio.sql"
+required_functions="pgio_get_rand.sql pgio_audit_table.sql pgio.sql"
 
 mypsql=$( type -p psql )
 
@@ -246,13 +246,13 @@ do
 
 	for (( j = 1 ; j <= num_threads ; j++ ))
 	do
-		( echo "SELECT * FROM mypgio('${TABLE_SEED_NAME}$i', $pct, $run_tm, $scale, $work_unit, $update_work_unit);" | psql $connect_string >> .pgio_schema_${i}_${j}.out 2>&1 ) &
+		( echo "SELECT * FROM mypgio('${TABLE_SEED_NAME}$i', $pct, $run_tm, $scale, $work_unit, $update_work_unit);" | psql "$connect_string" >> .pgio_schema_${i}_${j}.out 2>&1 ) &
 		waitpids="$waitpids $!"
 	done
 done
 
 launch_secs=$(( SECONDS - begin_secs ))
-[[ $launch_secs -gt 0 ]] && echo "Sessions launched. NOTE: Launching the sessions took $launch_secs seconds." 
+[[ $launch_secs -gt 0 ]] && echo "Sessions launched. NOTE: Launching the sessions took $launch_secs seconds."
 
 f_diskstats
 
@@ -283,7 +283,6 @@ echo "$run_time $after_reads $before_reads $dbname $num_schemas $num_threads $be
 $mykill -9 $misc_pids > /dev/null 2>&1
 
 f_print_results > pgio_session_detail.out
-
 
 
 

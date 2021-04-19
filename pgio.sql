@@ -14,11 +14,11 @@
 
 DROP TYPE pgio_return CASCADE;
 CREATE TYPE pgio_return AS (
-mypid int, 
-loop_iterations bigint , 
-sql_selects bigint, 
-sql_updates bigint, 
-sql_select_max_tm numeric, 
+mypid int,
+loop_iterations bigint ,
+sql_selects bigint,
+sql_updates bigint,
+sql_select_max_tm numeric,
 sql_update_max_tm numeric ,
 select_blk_touch_cnt bigint,
 update_blk_touch_cnt bigint
@@ -44,10 +44,10 @@ v_scale        		ALIAS for $4;
 v_select_batch_size	ALIAS for $5;
 v_update_batch_size	ALIAS for $6;
 
-v_end_time 		timestamp WITHOUT TIME ZONE; 
-v_before		timestamp WITHOUT TIME ZONE; 
-v_after			timestamp WITHOUT TIME ZONE; 
-v_tm			timestamp WITHOUT TIME ZONE; 
+v_end_time 		timestamp WITHOUT TIME ZONE;
+v_before		timestamp WITHOUT TIME ZONE;
+v_after			timestamp WITHOUT TIME ZONE;
+v_tm			timestamp WITHOUT TIME ZONE;
 v_tm_delta		numeric		:= 0.0;
 v_select_max_tm		numeric		:= 0.0;
 v_update_max_tm		numeric		:= 0.0;
@@ -87,7 +87,7 @@ SELECT pg_backend_pid() into v_pid;
 CASE
 	WHEN ( v_pctupd = 0 )   THEN v_select_only = TRUE ;
 	WHEN ( v_pctupd = 100 ) THEN v_update_only = TRUE ;
-	
+
 	WHEN ( v_pctupd > 100 ) THEN RAISE EXCEPTION 'FATAL : UPDATE_PCT "%" IS GREATER THAN 100.', v_pctupd ;
 	WHEN ( v_pctupd < 0 )   THEN RAISE EXCEPTION 'FATAL : UPDATE_PCT "%" IS LESS THAN ZERO.', v_pctupd ;
 	WHEN v_pctupd BETWEEN 51 AND 99 THEN RAISE EXCEPTION 'FATAL : UPDATE_PCT "%" BETWEEN 51 and 99 ARE NOT SUPPORTED.', v_pctupd ;
@@ -101,17 +101,17 @@ v_end_time := clock_timestamp() + (v_runtime_secs || ' seconds')::interval ;
 
 WHILE ( clock_timestamp()::timestamp < v_end_time ) LOOP
 
-SELECT pgio_get_random_number(1, v_scale - v_select_batch_size) INTO v_mykey;    
+SELECT pgio_get_random_number(1, v_scale - v_select_batch_size) INTO v_mykey;
 
-IF     ( v_update_only = TRUE ) THEN 
+IF     ( v_update_only = TRUE ) THEN
 	v_optype := 1;
 ELSEIF ((v_update_only = FALSE AND v_select_only = FALSE AND (MOD(v_mykey , 2) = 0) AND ( v_update_quota != TRUE )) OR (v_select_quota = TRUE) ) THEN
 	v_optype := 1;
-ELSEIF ( v_select_only = TRUE ) THEN 
+ELSEIF ( v_select_only = TRUE ) THEN
 	v_optype := 0;
 ELSE
 	v_optype := 0;
-END IF;	
+END IF;
 
 v_before := clock_timestamp();
 
